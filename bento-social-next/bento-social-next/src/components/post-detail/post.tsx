@@ -221,21 +221,22 @@ export default function PostDetail({
 
           {isPostType && (localData as IPost).image && (
             <Link href={`/posts/${localData.id}`}>
-              <div className="grid grid-rows-2 gap-2 max-w-[925px] w-full mx-auto">
+              <div className="grid gap-2 max-w-[925px] w-full mx-auto">
                 {Array.isArray((localData as IPost).image) ? (
                   (localData as IPost).image.map((img, index) => (
-                    <div 
-                      key={index} 
-                      className="relative aspect-[3/4] overflow-hidden"
+                    <div
+                      key={index}
+                      className="relative overflow-hidden"
                     >
                       <Image
-                        fill
+                        width={925}
+                        height={1388}
                         src={img}
                         alt={`post-image-${index + 1}`}
-                        className="object-cover transition-transform duration-300 hover:scale-105 mt-3"
+                        className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 mt-3"
                         quality={100}
-                        priority={index === 0}
-                        sizes="(max-width: 925px) 50vw, 925px"
+                        priority={true}
+                        sizes="(max-width: 925px) 100vw, 925px"
                       />
                     </div>
                   ))

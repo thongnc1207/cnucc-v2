@@ -37,9 +37,17 @@ export default function PostDetailView({ id }: { id: string }) {
   const handleViewFullPost = () => {
     const newIsViewFull = !isViewFull;
     setIsViewFull(newIsViewFull);
-
-    eventBus.emit('toggleSidebarRight', newIsViewFull);
   };
+
+  React.useEffect(() => {
+    // Hide sidebar when component mounts
+    eventBus.emit('toggleSidebarRight', true);
+
+    // Show sidebar when component unmounts
+    return () => {
+      eventBus.emit('toggleSidebarRight', false);
+    };
+  }, []);
 
   React.useEffect(() => {
     getPostDetail(id)
@@ -84,7 +92,7 @@ export default function PostDetailView({ id }: { id: string }) {
           >
             <PostDetail data={(data as IPost) ?? post} className="bg-neutral2-5" />
 
-            <div className="w-full h-fit relative">
+            <div className="max-w-md w-full h-fit relative">
               {isViewFull && (
                 <ComposerInput
                   className={`bg-neutral3-70 relative top-0 right-0`}

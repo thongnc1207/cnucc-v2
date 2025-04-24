@@ -222,7 +222,7 @@ export default function Post({
           {isPostType && (localData as IPost).image && (
             <Link href={`/posts/${localData.id}`}>
               <div className="grid grid-cols-2 gap-2">
-                {Array.isArray((localData as IPost).image) ? (
+                {/* {Array.isArray((localData as IPost).image) ? (
                   (localData as IPost).image.map((img, index) => (
                     <div 
                       key={index} 
@@ -239,17 +239,19 @@ export default function Post({
                       />
                     </div>
                   ))
-                ) : (
+                ) : ( */}
                   <div className="col-span-2">
                     <Image
                       width={400}
                       height={400}
-                      src={(localData as IPost).image as string}
+                      src={(localData as IPost).image[0] as string}
                       alt="post-image"
-                      className="max-h-[400px] w-full rounded-[1.5rem] object-cover"
+                      quality={100}
+                      loading="lazy"
+                      className="max-h-[600px] w-full rounded-[1.5rem] object-cover"
                     />
                   </div>
-                )}
+                {/* )} */}
               </div>
             </Link>
           )}

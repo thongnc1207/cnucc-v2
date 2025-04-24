@@ -14,6 +14,7 @@ import ProfileCard from '@/components/profile-card/profile-card';
 import ToggleGroup from '@/components/toggle-group/toggle-group';
 import { TrendingPostCard } from '@/components/trending-post-card';
 import { Typography } from '@/components/typography';
+import eventBus from '@/utils/event-emitter';
 
 //-------------------------------------------------------------------------
 
@@ -32,6 +33,19 @@ export default function SidebarRight({ className }: SidebarRightProps) {
   });
   const [error, setError] = React.useState({ posts: '', followers: '' });
   const { userProfile } = useUserProfile();
+  const [isHidden, setIsHidden] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleToggle = (hidden: boolean) => {
+      setIsHidden(hidden);
+    };
+
+    eventBus.on('toggleSidebarRight', handleToggle);
+
+    return () => {
+      eventBus.off('toggleSidebarRight', handleToggle);
+    };
+  }, []);
 
   React.useEffect(() => {
     const fetchPostsData = async () => {
@@ -85,6 +99,8 @@ export default function SidebarRight({ className }: SidebarRightProps) {
       console.error('Failed to follow user:', error);
     }
   };
+
+  if (isHidden) return null;
 
   if (isLoading.posts) return <SplashScreen />;
   if (error.posts) return <div>{error.posts}</div>;
