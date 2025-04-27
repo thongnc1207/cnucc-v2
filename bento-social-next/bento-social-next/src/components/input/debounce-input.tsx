@@ -32,6 +32,7 @@ export default function DebouncedInput({
     <Input
       {...props}
       value={value}
+      className="w-full h-12 text-base"
       onChange={(e) => setValue(e.target.value as string)}
     />
   );

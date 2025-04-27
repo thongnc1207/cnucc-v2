@@ -1,3 +1,6 @@
+'use client';
+import { uploadImage } from '@/apis/media';
+import { Media } from '@/interfaces/media'; // Add this import
 import Image from 'next/image';
 import React from 'react';
 import { z } from 'zod';
@@ -30,6 +33,7 @@ interface INewPostProps {
 export default function NewPost({ onBack }: INewPostProps) {
   const [previewUrls, setPreviewUrls] = React.useState<string[]>([]);
   const [uploadedImages, setUploadedImages] = React.useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]); // New state for files
   const [isUploading, setIsUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -63,9 +67,19 @@ export default function NewPost({ onBack }: INewPostProps) {
     try {
       setIsSubmitting(true);
 
+      // First upload images if there are any
+      let uploadedImageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        setIsUploading(true);
+        const response = await uploadImage(selectedFiles);
+        const mediaArray = Array.isArray(response.data) ? response.data : [response.data];
+        uploadedImageUrls = mediaArray.map((item: Media) => item.url);
+        setIsUploading(false);
+      }
+
       const postData: CreatePost = {
         content: content.trim(),
-        image: uploadedImages.length > 0 ? uploadedImages : null,
+        image: uploadedImageUrls.length > 0 ? uploadedImageUrls : null,
         topicId: selectedTopic,
       };
 
@@ -75,7 +89,7 @@ export default function NewPost({ onBack }: INewPostProps) {
       const newPost: IPost = {
         id: tempId,
         content: content.trim(),
-        image: uploadedImages,
+        image: uploadedImageUrls, // Use the newly uploaded URLs
         topic: topics.find((topic) => topic.id === selectedTopic) || {
           id: '',
           name: '',
@@ -96,7 +110,7 @@ export default function NewPost({ onBack }: INewPostProps) {
         isFeatured: false,
         commentCount: 0,
         likedCount: 0,
-        type: uploadedImages.length > 0 ? 'media' : 'text',
+        type: uploadedImageUrls.length > 0 ? 'media' : 'text',
         hasLiked: false,
         hasSaved: false,
       };
@@ -107,7 +121,7 @@ export default function NewPost({ onBack }: INewPostProps) {
 
       setContent('');
       setPreviewUrls([]);
-      setUploadedImages([]);
+      setSelectedFiles([]); // Clear selected files
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -127,8 +141,9 @@ export default function NewPost({ onBack }: INewPostProps) {
 
   const handleRemoveImage = (index: number) => {
     setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
-    if (fileInputRef.current) {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    // Only clear the file input if we're removing the last image
+    if (previewUrls.length <= 1 && fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
@@ -145,7 +160,7 @@ export default function NewPost({ onBack }: INewPostProps) {
           onClick={onBack}
         />
       </div>
-      <div className="w-full h-full relative shadow-button bg-[#282828b3] backdrop-blur-[50px] before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:border-[1.5px] before:border-[#ffffff1a] before:[mask-image:linear-gradient(175deg,#000,transparent_50%)] md:mx-auto md:w-[40rem] md:h-[16rem] md:mt-[10%] md:rounded-button md:before:rounded-button ">
+      <div className="w-full h-full relative shadow-button bg-[#282828b3] backdrop-blur-[50px] before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:border-[1.5px] before:border-[#ffffff1a] before:[mask-image:linear-gradient(175deg,#000,transparent_50%)] md:mx-auto md:w-[40rem] md:h-[34rem] md:mt-[10%] md:rounded-button md:before:rounded-button ">
         <div className="md:hidden w-full flex items-center justify-between p-3">
           <Button
             className="size-10 p-2.5"
@@ -175,46 +190,48 @@ export default function NewPost({ onBack }: INewPostProps) {
                   onChange={(value: string) => setContent(value)}
                 />
                 {previewUrls.length > 0 && (
-                  <div className="relative mt-2 grid grid-cols-2 gap-2">
-                    {previewUrls.map((url, index) => (
-                      <div
-                        key={index}
-                        className="relative bg-neutral2-1 rounded-lg group aspect-[3/4]"
-                      >
-                        <Image
-                          src={url}
-                          alt={`Preview ${index + 1}`}
-                          fill
-                          className="object-cover rounded-lg"
-                          sizes="(max-width: 300px) 50vw, 300px"
-                        />
-                        {isUploading && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
-                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-4 right-4 p-1 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-opacity opacity-0 group-hover:opacity-100"
-                          disabled={isUploading}
+                  <div className="relative mt-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-2 gap-2 p-2">
+                      {previewUrls.map((url, index) => (
+                        <div
+                          key={index}
+                          className="relative bg-neutral2-1 rounded-lg group aspect-[3/4]"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                          <Image
+                            src={url}
+                            alt={`Preview ${index + 1}`}
+                            fill
+                            className="object-cover rounded-lg"
+                            sizes="(max-width: 300px) 50vw, 300px"
+                          />
+                          {isUploading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            </div>
+                          )}
+                          <button
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-4 right-4 p-1 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-opacity opacity-0 group-hover:opacity-100"
+                            disabled={isUploading}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -227,8 +244,7 @@ export default function NewPost({ onBack }: INewPostProps) {
             <UploadImgButton
               fileInputRef={fileInputRef}
               setPreviewUrl={setPreviewUrls}
-              setUploadedImage={setUploadedImages}
-              setIsUploading={setIsUploading}
+              setSelectedFiles={setSelectedFiles}
             />
 
             {/* <GifButton /> */}

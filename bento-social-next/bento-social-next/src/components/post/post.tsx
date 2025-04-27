@@ -240,6 +240,7 @@ export default function Post({
                     </div>
                   ))
                 ) : ( */}
+                {Array.isArray((localData as IPost).image) && (localData as IPost).image[0] ? (
                   <div className="col-span-2">
                     <Image
                       width={400}
@@ -251,7 +252,9 @@ export default function Post({
                       className="max-h-[600px] w-full rounded-[1.5rem] object-cover"
                     />
                   </div>
-                {/* )} */}
+                ) : (
+                  <></>
+                )}
               </div>
             </Link>
           )}
