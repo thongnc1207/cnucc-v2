@@ -22,3 +22,10 @@ export const uploadImage = async (file: File | File[]): Promise<IApiResponse<Med
   console.log("response: "+ response.data);
   return response.data;
 };
+
+export const deleteImages = async (urls: string[]): Promise<IApiResponse<boolean>> => {
+  const response = await axiosInstance.delete(endpoints.media.deleteMultiple, {
+    data: { urls }
+  });
+  return response.data;
+};

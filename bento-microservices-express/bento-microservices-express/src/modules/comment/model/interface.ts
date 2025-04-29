@@ -6,6 +6,7 @@ import { Requester } from '@shared/interface'
 export interface ICommentRepository extends ICommentQueryRepository, ICommentCommandRepository {
  increaseLikeCount(id: string, field: string, step: number): Promise<boolean>
  decreaseLikeCount(id: string, field: string, step: number): Promise<boolean>
+ deleteByPostId(postId: string): Promise<boolean>;
 }
 export interface ICommentUseCase {
  create(dto: CommentCreateDTO): Promise<string>
@@ -13,6 +14,7 @@ export interface ICommentUseCase {
  delete(requester: Requester, id: string): Promise<boolean>
  findById(id: string): Promise<Comment>
  list(dto: CommentCondDTO, paging: PagingDTO): Promise<Paginated<Comment>>
+ deleteAllByPostId(postId: string, requester: Requester): Promise<boolean>;
 }
 
 export interface ICommentQueryRepository {

@@ -115,6 +115,14 @@ export class MysqlCommentRepository implements ICommentRepository {
     return true;
   }
 
+  async deleteByPostId(postId: string): Promise<boolean> {
+    await prisma.comments.updateMany({
+      where: { postId },
+      data: { status: commentStatus.DELETED }
+    });
+    return true;
+  }
+
   async increaseLikeCount(id: string, field: string, step: number): Promise<boolean> {
     await prisma.comments.update({
       where: { id },

@@ -21,5 +21,8 @@ export const setupMediaModule = () => {
   // Multiple files upload route
   router.post('/upload-files', upload.array('files', 10), httpService.uploadMultipleFiles.bind(httpService));
 
+  // Add new delete endpoint
+  router.delete('/delete-files', httpService.deleteFiles.bind(httpService));
+
   return router;
 };

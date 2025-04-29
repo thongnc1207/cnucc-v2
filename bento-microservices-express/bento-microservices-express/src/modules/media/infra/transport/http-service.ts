@@ -6,6 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 const ErrImageTooBig = AppError.from(new Error('image too big, max size is 512KB'), 400);
 const ErrMediaNotFound = AppError.from(new Error('media not found'), 400);
 const ErrUploadFailed = AppError.from(new Error('failed to upload to cloudinary'), 500);
+const ErrDeleteFailed = AppError.from(new Error('failed to delete from cloudinary'), 500);
 
 export class MediaHttpService {
   constructor() {
@@ -39,6 +40,12 @@ export class MediaHttpService {
     };
   }
 
+  private getPublicIdFromUrl(url: string): string {
+    const urlParts = url.split('/');
+    const publicIdWithExt = urlParts[urlParts.length - 1];
+    return publicIdWithExt.split('.')[0]; // Remove file extension
+  }
+
   async uploadSingleFile(req: Request, res: Response) {
     const file = req.file;
     if (!file) {
@@ -67,6 +74,36 @@ export class MediaHttpService {
     } catch (error) {
       console.error('Cloudinary upload failed:', error);
       throw ErrUploadFailed;
+    }
+  }
+
+  async deleteFiles(req: Request, res: Response) {
+    const { urls } = req.body as { urls: string[] };
+    
+    if (!urls || urls.length === 0) {
+      throw AppError.from(new Error('No URLs provided'), 400);
+    }
+
+    try {
+      const deletePromises = urls.map(async (url) => {
+        const publicId = this.getPublicIdFromUrl(url);
+        return cloudinary.uploader.destroy(publicId);
+      });
+
+      const results = await Promise.all(deletePromises);
+      
+      const success = results.every(result => result.result === 'ok');
+      if (!success) {
+        throw ErrDeleteFailed;
+      }
+
+      res.status(200).json({ 
+        message: 'Files deleted successfully',
+        data: results 
+      });
+    } catch (error) {
+      console.error('Cloudinary delete failed:', error);
+      throw ErrDeleteFailed;
     }
   }
 }

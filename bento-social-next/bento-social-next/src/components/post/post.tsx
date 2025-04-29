@@ -1,5 +1,5 @@
 'use client';
-
+import { deleteImages } from '@/apis/media';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -11,6 +11,11 @@ import {
   unlikePost,
   unsavePost,
 } from '@/apis/post';
+import {
+  deleteAllCommentsOfPost,
+  getCommennts,
+  deleteComment,
+} from '@/apis/comment';
 import { IChilrenComment, ICommment } from '@/interfaces/comment';
 import { IPost } from '@/interfaces/post';
 import { IUserProfile } from '@/interfaces/user';
@@ -62,11 +67,15 @@ export default function Post({
   const [localData, setLocalData] = React.useState(data);
   const [isEdit, setIsEdit] = React.useState<boolean>(false);
   const [isConfirm, setIsConfirm] = React.useState<boolean>(false);
+  const [isLikeLoading, setIsLikeLoading] = React.useState(false);
+  const [isBookmarkLoading, setIsBookmarkLoading] = React.useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = React.useState(false);
 
   const isPostType = 'isFeatured' in data || 'hasSaved' in data;
 
   const handleLikeClick = async () => {
-    if (!isPostType) return;
+    if (!isPostType || isLikeLoading) return;
+    setIsLikeLoading(true);
 
     const newLikedCount =
       localData.likedCount + ((localData as IPost).hasLiked ? -1 : 1);
@@ -93,6 +102,8 @@ export default function Post({
       if (onUpdatePost) {
         onUpdatePost(localData as IPost);
       }
+    } finally {
+      setIsLikeLoading(false);
     }
   };
 
@@ -101,7 +112,8 @@ export default function Post({
   };
 
   const handleBookmarkClick = async () => {
-    if (!isPostType) return;
+    if (!isPostType || isBookmarkLoading) return;
+    setIsBookmarkLoading(true);
 
     const updatedData = {
       ...localData,
@@ -125,6 +137,8 @@ export default function Post({
       if (onUpdatePost) {
         onUpdatePost(localData as IPost);
       }
+    } finally {
+      setIsBookmarkLoading(false);
     }
   };
 
@@ -144,13 +158,79 @@ export default function Post({
   };
 
   const handleDeletePost = async () => {
+    setIsDeleteLoading(true);
     try {
+      // Delete images first if they exist
+      if (
+        isPostType &&
+        (localData as IPost).image &&
+        Array.isArray((localData as IPost).image)
+      ) {
+        const images = (localData as IPost).image;
+        if (images.length > 0) {
+          try {
+            await deleteImages(Array.isArray(images) ? images : [images]);
+          } catch (error) {
+            console.error('Failed to delete post images:', error);
+          }
+        }
+      }
+
+      // Remove from bookmark if bookmarked
+      if (
+        isPostType &&
+        (localData as IPost).hasSaved
+      ) {
+        try {
+          await unsavePost(localData.id);
+        } catch (error) {
+          console.error('Failed to unsave post before delete:', error);
+        }
+      }
+
+      // Remove from like if liked
+      if (
+        isPostType &&
+        (localData as IPost).hasLiked
+      ) {
+        try {
+          await unlikePost(localData.id);
+        } catch (error) {
+          console.error('Failed to unlike post before delete:', error);
+        }
+      }
+
+      // Delete all comments if any
+      if (
+        isPostType &&
+        (localData as IPost).commentCount &&
+        (localData as IPost).commentCount > 0
+      ) {
+        try {
+          // Fetch all comments of the post
+          const commentsRes = await getCommennts(localData.id);
+          const comments = commentsRes.data || [];
+          // Delete each comment individually
+          for (const comment of comments) {
+            try {
+              await deleteComment(comment.id);
+            } catch (error) {
+              console.error(`Failed to delete comment ${comment.id}:`, error);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to delete comments before deleting post:', error);
+        }
+      }
+
+      // Then delete the post
       await deletePost(data.id);
       onDeleteSuccess?.(true);
     } catch (error) {
       console.error('Failed to delete post:', error);
     }
     setIsConfirm(false);
+    setIsDeleteLoading(false);
   };
 
   const handleConfirmDelete = () => {
@@ -222,24 +302,6 @@ export default function Post({
           {isPostType && (localData as IPost).image && (
             <Link href={`/posts/${localData.id}`}>
               <div className="grid grid-cols-2 gap-2">
-                {/* {Array.isArray((localData as IPost).image) ? (
-                  (localData as IPost).image.map((img, index) => (
-                    <div 
-                      key={index} 
-                      className="relative aspect-[3/4] overflow-hidden rounded-[1.5rem] bg-neutral2-5"
-                    >
-                      <Image
-                        fill
-                        src={img}
-                        alt={`post-image-${index + 1}`}
-                        className="object-cover transition-transform duration-300 hover:scale-105"
-                        quality={100}
-                        priority={index === 0}
-                        sizes="(max-width: 400px) 50vw, 400px"
-                      />
-                    </div>
-                  ))
-                ) : ( */}
                 {Array.isArray((localData as IPost).image) && (localData as IPost).image[0] ? (
                   <div className="col-span-2">
                     <Image
@@ -268,13 +330,19 @@ export default function Post({
       </div>
 
       <div className="flex justify-end items-center md:justify-start md:pl-[48px]">
-        <ReactItem
-          value={localData.likedCount}
-          icon={
-            <HeartIcon isActive={isPostType && (localData as IPost).hasLiked} />
-          }
-          onClick={handleLikeClick}
-        />
+        <div className="relative">
+          <ReactItem
+            value={localData.likedCount}
+            icon={
+              <HeartIcon isActive={isPostType && (localData as IPost).hasLiked} />
+            }
+            onClick={isLikeLoading ? undefined : handleLikeClick}
+            className={isLikeLoading ? 'pointer-events-none opacity-60' : ''}
+          />
+          {isLikeLoading && (
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+          )}
+        </div>
 
         {isPostType ? (
           <ReactItem
@@ -291,14 +359,18 @@ export default function Post({
           <div className="flex items-center md:grow justify-end gap-4">
             <button
               type="button"
-              className="size-[40px] flex justify-center items-center rounded-full hover:bg-neutral2-5"
+              className={`size-[40px] flex justify-center items-center rounded-full hover:bg-neutral2-5 relative ${isBookmarkLoading ? 'pointer-events-none opacity-60' : ''}`}
               onClick={handleBookmarkClick}
+              disabled={isBookmarkLoading}
             >
               <BookmarkIcon
                 height={24}
                 width={24}
                 isActive={(localData as IPost).hasSaved}
               />
+              {isBookmarkLoading && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+              )}
             </button>
           </div>
         )}
@@ -339,9 +411,10 @@ export default function Post({
             <Button
               onClick={handleDeletePost}
               className="w-full sm:w-auto"
+              disabled={isDeleteLoading}
               child={
                 <Typography level="base2sm" className="p-3 text-tertiary">
-                  Confirm
+                  {isDeleteLoading ? 'Deleting...' : 'Confirm'}
                 </Typography>
               }
             />

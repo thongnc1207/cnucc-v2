@@ -83,7 +83,8 @@ export const endpoints = {
   },
   media: {
     upload: `${VERSION_PREFIX}/upload-file`,
-    uploadMultiple: `${VERSION_PREFIX}/upload-files`, // New endpoint for multiple files
+    uploadMultiple: `${VERSION_PREFIX}/upload-files`,
+    deleteMultiple: `${VERSION_PREFIX}/delete-files`, // Add this new endpoint
   },
 
   topic: {
@@ -100,5 +101,6 @@ export const endpoints = {
 
   comment: {
     get: `${VERSION_PREFIX}/comments`,
+    delete: `${VERSION_PREFIX}/posts`,
   },
 };

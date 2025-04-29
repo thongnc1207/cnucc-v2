@@ -1,7 +1,8 @@
 'use client';
-
+import { uploadImage } from '@/apis/media';
+import { Media } from '@/interfaces/media'; // Add this import
 import Image from 'next/image';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { z } from 'zod';
 
 import { createComment } from '@/apis/comment';
@@ -50,25 +51,44 @@ export default function ComposerInput({
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>('');
 
-  const [previewUrl, setPreviewUrl] = React.useState<string>('');
-  const [uploadedImage, setUploadedImage] = React.useState<string>('');
-  const [isUploading, setIsUploading] = React.useState<boolean>(false);
+  const [previewUrls, setPreviewUrls] = React.useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = React.useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]); // New state for files
+  const [isUploading, setIsUploading] = React.useState(false);
 
   const [content, setContent] = React.useState<string>('');
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current && 
+        !containerRef.current.contains(event.target as Node) &&
+        isInputFocused
+      ) {
+        setInputFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isInputFocused]);
+
   React.useEffect(() => {
     getTopics()
       .then((response) => {
-        console.log(response)
+        console.log(response);
         setTopics(response.data);
         if (response.data.length > 0) {
-          console.log(response)
+          console.log(response);
           setSelectedTopic(response.data[0].id);
         }
-        
       })
       .catch((error) => {
         console.error('Error fetching topics:', error);
@@ -83,9 +103,21 @@ export default function ComposerInput({
     try {
       setIsSubmitting(true);
 
+      // First upload images if there are any
+      let uploadedImageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        setIsUploading(true);
+        const response = await uploadImage(selectedFiles);
+        const mediaArray = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
+        uploadedImageUrls = mediaArray.map((item: Media) => item.url);
+        setIsUploading(false);
+      }
+
       const postData: CreatePost = {
         content: content.trim(),
-        image: uploadedImage || null,
+        image: uploadedImageUrls.length > 0 ? uploadedImageUrls : null,
         topicId: selectedTopic,
       };
 
@@ -96,7 +128,7 @@ export default function ComposerInput({
       const newPost: IPost = {
         id: tempId,
         content: content.trim(),
-        image: uploadedImage,
+        image: uploadedImageUrls, // Use the newly uploaded URLs
         topic: topics.find((topic) => topic.id === selectedTopic) || {
           id: '',
           name: '',
@@ -117,7 +149,7 @@ export default function ComposerInput({
         isFeatured: false,
         commentCount: 0,
         likedCount: 0,
-        type: uploadedImage === 'post' ? 'media' : 'text',
+        type: uploadedImageUrls.length > 0 ? 'media' : 'text',
         hasLiked: false,
         hasSaved: false,
       };
@@ -146,9 +178,8 @@ export default function ComposerInput({
       await createPost(validatedData);
 
       setContent('');
-      setPreviewUrl('');
-      setUploadedImage('');
-      setInputFocused(false);
+      setPreviewUrls([]);
+      setSelectedFiles([]); // Clear selected files
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -164,10 +195,11 @@ export default function ComposerInput({
     }
   };
 
-  const handleRemoveImage = () => {
-    setPreviewUrl('');
-    setUploadedImage('');
-    if (fileInputRef.current) {
+  const handleRemoveImage = (index: number) => {
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    // Only clear the file input if we're removing the last image
+    if (previewUrls.length <= 1 && fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
@@ -188,6 +220,7 @@ export default function ComposerInput({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         `w-full flex gap-3 h-[64px] z-10 overflow-hidden items-center justify-between p-3 absolute left-0 bottom-0 rounded-[1.25rem] ${isInputFocused ? ' h-fit flex-col justify-start bg-neutral3-70 hover:bg-neutral2-5' : 'flex-row bg-neutral2-2'} transition-all duration-[0.2s]`,
         className
@@ -214,29 +247,48 @@ export default function ComposerInput({
             className={`min-w-full p-0 text-left min-h-fit max-h-fit !bg-transparent text-tertiary placeholder:text-tertiary grow opacity-50 focus:outline-none focus:bg-transparent focus:opacity-100 ${isInputFocused ? 'pt-[0px]' : ' pt-[30px]'}`}
             onFocus={() => setInputFocused(true)}
           />
-          {previewUrl && (
-            <div className="relative mt-2 rounded-lg overflow-hidden group">
-              <div className="relative bg-neutral2-1 p-2 rounded-lg">
-                <Image
-                  src={previewUrl}
-                  alt="Preview"
-                  width={600}
-                  height={300}
-                  style={{ objectFit: 'contain' }}
-                  className="w-full h-auto max-h-[18rem] rounded"
-                />
-                {isUploading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded">
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          {previewUrls.length > 0 && (
+            <div className="relative mt-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-2 gap-2 p-2">
+                {previewUrls.map((url, index) => (
+                  <div
+                    key={index}
+                    className="relative bg-neutral2-1 rounded-lg group aspect-[3/4]"
+                  >
+                    <Image
+                      src={url}
+                      alt={`Preview ${index + 1}`}
+                      fill
+                      className="object-cover rounded-lg"
+                      sizes="(max-width: 300px) 50vw, 300px"
+                    />
+                    {isUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-4 right-4 p-1 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-opacity opacity-0 group-hover:opacity-100"
+                      disabled={isUploading}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                )}
-                <button
-                  onClick={handleRemoveImage}
-                  className="absolute top-4 right-4 p-1 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-opacity opacity-0 group-hover:opacity-100"
-                  disabled={isUploading}
-                >
-                  <CloseIcon />
-                </button>
+                ))}
               </div>
             </div>
           )}
@@ -252,9 +304,8 @@ export default function ComposerInput({
 
             <UploadImgButton
               fileInputRef={fileInputRef}
-              setPreviewUrl={setPreviewUrl}
-              setUploadedImage={setUploadedImage}
-              setIsUploading={setIsUploading}
+              setPreviewUrl={setPreviewUrls}
+              setSelectedFiles={setSelectedFiles}
             />
 
             {/* <GifButton /> */}

@@ -88,6 +88,21 @@ export class CommentUsecase implements ICommentUseCase {
     return true;
   }
 
+  async deleteAllByPostId(postId: string, requester: Requester): Promise<boolean> {
+    const post = await this.postRpc.findById(postId);
+    if (!post) throw AppError.from(ErrPostNotFound, 404);
+    if (post.authorId !== requester.sub) throw AppError.from(ErrNotFound, 404);
+
+    await this.repository.deleteByPostId(postId);
+
+    // Optionally publish an event
+    this.eventPublisher.publish(
+      PostCommentDeletedEvent.create({ postId }, requester.sub)
+    );
+
+    return true;
+  }
+
   async findById(id: string): Promise<Comment> {
     const data = await this.repository.findById(id);
     if (!data || data.status == commentStatus.DELETED) throw ErrNotFound;

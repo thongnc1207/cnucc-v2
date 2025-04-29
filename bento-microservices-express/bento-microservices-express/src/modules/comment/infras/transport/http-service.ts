@@ -52,6 +52,13 @@ export class CommentHttpService {
     successResponse(ok, res);
   }
 
+  async deleteAllCommentsAPI(req: Request, res: Response) {
+    const { postId } = req.params;
+    const requester = res.locals.requester as Requester;
+    const ok = await this.useCase.deleteAllByPostId(postId, requester);
+    successResponse(ok, res);
+  }
+
   getRoutes(mdlFactory: MdlFactory): Router {
     const router = Router();
 
@@ -59,6 +66,7 @@ export class CommentHttpService {
     router.post('/posts/:id/comments', mdlFactory.auth, this.createCommentAPI.bind(this));
     router.patch('/comments/:id', mdlFactory.auth, this.updateCommentAPI.bind(this));
     router.delete('/comments/:id', mdlFactory.auth, this.deleteCommentAPI.bind(this));
+    router.delete('/posts/:postId/comments', mdlFactory.auth, this.deleteAllCommentsAPI.bind(this));
     return router;
   }
 }
