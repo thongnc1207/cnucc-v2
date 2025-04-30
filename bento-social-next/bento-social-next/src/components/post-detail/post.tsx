@@ -3,14 +3,22 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
-
+import { useRouter } from 'next/navigation';
+import { deleteImages } from '@/apis/media';
 import {
   deletePost,
   likePost,
   savePost,
   unlikePost,
   unsavePost,
+  unlikeAll,
+  unsaveAll,
 } from '@/apis/post';
+import {
+  getCommennts,
+  deleteComment,
+  deleteAllCommentsOfPost,
+} from '@/apis/comment';
 import { IChilrenComment, ICommment } from '@/interfaces/comment';
 import { IPost } from '@/interfaces/post';
 import { IUserProfile } from '@/interfaces/user';
@@ -62,6 +70,8 @@ export default function PostDetail({
   const [localData, setLocalData] = React.useState(data);
   const [isEdit, setIsEdit] = React.useState<boolean>(false);
   const [isConfirm, setIsConfirm] = React.useState<boolean>(false);
+  const [isDeleteLoading, setIsDeleteLoading] = React.useState(false);
+  const router = useRouter();
 
   const isPostType = 'isFeatured' in data || 'hasSaved' in data;
 
@@ -97,6 +107,8 @@ export default function PostDetail({
   };
 
   const handleMoreOptions = () => {
+    console.log(openMoreOptionsId);
+    console.log(data.id);
     setOpenMoreOptionsId?.(openMoreOptionsId === data.id ? null : data.id);
   };
 
@@ -144,13 +156,80 @@ export default function PostDetail({
   };
 
   const handleDeletePost = async () => {
+    setIsDeleteLoading(true);
     try {
+      // Delete images first if they exist
+      if (
+        isPostType &&
+        (localData as IPost).image &&
+        Array.isArray((localData as IPost).image)
+      ) {
+        const images = (localData as IPost).image;
+        if (images.length > 0) {
+          try {
+            await deleteImages(Array.isArray(images) ? images : [images]);
+          } catch (error) {
+            console.error('Failed to delete post images:', error);
+          }
+        }
+      }
+
+      // Remove from bookmark if bookmarked
+      if (isPostType && (localData as IPost).hasSaved) {
+        try {
+          await unsaveAll(localData.id);
+        } catch (error) {
+          console.error('Failed to unsave post before delete:', error);
+        }
+      }
+
+      // Remove from like if liked
+      if (isPostType && (localData as IPost).hasLiked) {
+        try {
+          await unlikeAll(localData.id);
+        } catch (error) {
+          console.error('Failed to unlike post before delete:', error);
+        }
+      }
+
+      // Delete all comments if any
+      if (
+        isPostType &&
+        (localData as IPost).commentCount &&
+        (localData as IPost).commentCount > 0
+      ) {
+        try {
+          // // Fetch all comments of the post
+          // const commentsRes = await getCommennts(localData.id);
+          // console.log(commentsRes);
+          // const comments = commentsRes.data || [];
+          // // Delete each comment individually
+          // for (const comment of comments) {
+          //   try {
+          //     console.log(comment.id);
+          //     await deleteComment(comment.id);
+          //   } catch (error) {
+          //     console.error(`Failed to delete comment ${comment.id}:`, error);
+          //   }
+          // }
+          await deleteAllCommentsOfPost(localData.id);
+        } catch (error) {
+          console.error(
+            'Failed to delete comments before deleting post:',
+            error
+          );
+        }
+      }
+
+      // Then delete the post
       await deletePost(data.id);
       onDeleteSuccess?.(true);
+      router.back();
     } catch (error) {
       console.error('Failed to delete post:', error);
     }
     setIsConfirm(false);
+    setIsDeleteLoading(false);
   };
 
   const handleConfirmDelete = () => {
@@ -224,10 +303,7 @@ export default function PostDetail({
               <div className="grid gap-2 max-w-[925px] w-full mx-auto">
                 {Array.isArray((localData as IPost).image) ? (
                   (localData as IPost).image.map((img, index) => (
-                    <div
-                      key={index}
-                      className="relative overflow-hidden"
-                    >
+                    <div key={index} className="relative overflow-hidden">
                       <Image
                         width={925}
                         height={1388}
@@ -241,18 +317,19 @@ export default function PostDetail({
                     </div>
                   ))
                 ) : (
-                  <div className="col-span-2 max-w-[925px] w-full mx-auto overflow-hidden bg-neutral2-5 rounded-[1.5rem]">
-                    <Image
-                      width={925}
-                      height={1388}
-                      src={(localData as IPost).image as string}
-                      alt="post-image"
-                      className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105"
-                      quality={100}
-                      priority
-                      sizes="(max-width: 925px) 100vw, 925px"
-                    />
-                  </div>
+                  // <div className="col-span-2 max-w-[925px] w-full mx-auto overflow-hidden bg-neutral2-5 rounded-[1.5rem]">
+                  //   <Image
+                  //     width={925}
+                  //     height={1388}
+                  //     src={(localData as IPost).image as string}
+                  //     alt="post-image"
+                  //     className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105"
+                  //     quality={100}
+                  //     priority
+                  //     sizes="(max-width: 925px) 100vw, 925px"
+                  //   />
+                  // </div>
+                  <></>
                 )}
               </div>
             </Link>
@@ -340,7 +417,7 @@ export default function PostDetail({
               className="w-full sm:w-auto"
               child={
                 <Typography level="base2sm" className="p-3 text-tertiary">
-                  Confirm
+                  {isDeleteLoading ? 'Deleting...' : 'Confirm'}
                 </Typography>
               }
             />

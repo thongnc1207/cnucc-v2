@@ -31,6 +31,7 @@ export class PostLikeUsecase implements IPostLikeUseCase {
 
     return true;
   }
+
   async unlike(data: ActionDTO): Promise<boolean> {
     const parseData = actionDTOSchema.parse(data);
 
@@ -48,6 +49,20 @@ export class PostLikeUsecase implements IPostLikeUseCase {
 
     // publish event
     this.eventPublisher.publish(PostUnlikedEvent.create({ postId: parseData.postId }, parseData.userId));
+
+    return true;
+  }
+
+  async unlikeAll(postId: string): Promise<boolean> {
+    const postExist = await this.postRpc.existed(postId);
+    if (!postExist) {
+      throw ErrNotFound;
+    }
+
+    await this.repo.deleteAll(postId);
+
+    // publish event
+    this.eventPublisher.publish(PostUnlikedEvent.create({ postId }, 'system'));
 
     return true;
   }

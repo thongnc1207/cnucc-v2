@@ -56,6 +56,13 @@ export const unlikePost = async (
   return response.data;
 };
 
+export const unlikeAll = async (
+  postId: string
+): Promise<IApiResponse<string>> => {
+  const response = await axiosInstance.delete(endpoints.post.unlikeAll(postId));
+  return response.data;
+};
+
 export const savePost = async (
   postId: string
 ): Promise<IApiResponse<string>> => {
@@ -67,6 +74,13 @@ export const unsavePost = async (
   postId: string
 ): Promise<IApiResponse<string>> => {
   const response = await axiosInstance.post(endpoints.post.unsave(postId));
+  return response.data;
+};
+
+export const unsaveAll = async (
+  postId: string
+): Promise<IApiResponse<string>> => {
+  const response = await axiosInstance.delete(endpoints.post.unsaveAll(postId));
   return response.data;
 };
 

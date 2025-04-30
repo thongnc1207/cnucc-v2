@@ -43,6 +43,12 @@ export class PostSaveHttpService {
     successResponse(result, res);
   }
 
+  async unsaveAllAPI(req: Request, res: Response) {
+    const postId = req.params.id;
+    const result = await this.usecase.unsaveAll(postId);
+    successResponse(result, res);
+  }
+
   async listPostSaveAPI(req: Request, res: Response) {
     // const { sub } = res.locals.requester as Requester;
     const userId = req.params.id;
@@ -123,6 +129,7 @@ export class PostSaveHttpService {
 
     router.post("/posts/:id/save", mdlFactory.auth, this.saveAPI.bind(this));
     router.post("/posts/:id/unsave", mdlFactory.auth, this.unsaveAPI.bind(this));
+    router.delete("/posts/:id/unsave-all", mdlFactory.auth, this.unsaveAllAPI.bind(this));
     router.get("/users/:id/saved-posts", mdlFactory.auth, this.listPostSaveAPI.bind(this));
 
     // RPC

@@ -28,7 +28,7 @@ export interface IAuthor {
 export interface IPost {
   id: string;
   content: string;
-  image: string[] | string; // Updated to handle array of images
+  image: string[]; // Updated to handle array of images
   isFeatured: boolean;
   commentCount: number;
   likedCount: number;

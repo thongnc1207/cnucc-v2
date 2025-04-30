@@ -29,10 +29,14 @@ export default function PostDetailView({ id }: { id: string }) {
   const [comments, setComments] = React.useState<ICommment[]>([]);
   const [isViewFull, setIsViewFull] = React.useState(false);
   const [isCreated, setIsCreated] = React.useState(false);
+  const [isDeleted, setIsDeleted] = React.useState<boolean>(false);
   const [parentComment, setParentComment] = React.useState<{
     id: string;
     fullname: string;
   }>({ id: '', fullname: '' });
+  const [openMoreOptionsId, setOpenMoreOptionsId] = React.useState<
+    string | null
+  >(null);
 
   const handleViewFullPost = () => {
     const newIsViewFull = !isViewFull;
@@ -90,7 +94,13 @@ export default function PostDetailView({ id }: { id: string }) {
           <div
             className={`${isViewFull ? `${styles.viewFull}` : ''} w-full h-[calc(100svh-155px)] overflow-y-scroll no-scrollbar [mask-image:linear-gradient(180deg,#000_85%,transparent)]`}
           >
-            <PostDetail data={(data as IPost) ?? post} className="bg-neutral2-5" />
+            <PostDetail
+              data={(data as IPost) ?? post}
+              onDeleteSuccess={setIsDeleted}
+              openMoreOptionsId={openMoreOptionsId}
+              setOpenMoreOptionsId={setOpenMoreOptionsId}
+              className="bg-neutral2-5"
+            />
 
             <div className="max-w-md w-full h-fit relative">
               {isViewFull && (

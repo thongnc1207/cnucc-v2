@@ -8,7 +8,9 @@ import {
   deletePost,
   likePost,
   savePost,
+  unlikeAll,
   unlikePost,
+  unsaveAll,
   unsavePost,
 } from '@/apis/post';
 import {
@@ -108,6 +110,8 @@ export default function Post({
   };
 
   const handleMoreOptions = () => {
+    console.log(openMoreOptionsId);
+    console.log(data.id);
     setOpenMoreOptionsId?.(openMoreOptionsId === data.id ? null : data.id);
   };
 
@@ -177,24 +181,18 @@ export default function Post({
       }
 
       // Remove from bookmark if bookmarked
-      if (
-        isPostType &&
-        (localData as IPost).hasSaved
-      ) {
+      if (isPostType && (localData as IPost).hasSaved) {
         try {
-          await unsavePost(localData.id);
+          await unsaveAll(localData.id);
         } catch (error) {
           console.error('Failed to unsave post before delete:', error);
         }
       }
 
       // Remove from like if liked
-      if (
-        isPostType &&
-        (localData as IPost).hasLiked
-      ) {
+      if (isPostType && (localData as IPost).hasLiked) {
         try {
-          await unlikePost(localData.id);
+          await unlikeAll(localData.id);
         } catch (error) {
           console.error('Failed to unlike post before delete:', error);
         }
@@ -207,19 +205,25 @@ export default function Post({
         (localData as IPost).commentCount > 0
       ) {
         try {
-          // Fetch all comments of the post
-          const commentsRes = await getCommennts(localData.id);
-          const comments = commentsRes.data || [];
-          // Delete each comment individually
-          for (const comment of comments) {
-            try {
-              await deleteComment(comment.id);
-            } catch (error) {
-              console.error(`Failed to delete comment ${comment.id}:`, error);
-            }
-          }
+          // // Fetch all comments of the post
+          // const commentsRes = await getCommennts(localData.id);
+          // console.log(commentsRes);
+          // const comments = commentsRes.data || [];
+          // // Delete each comment individually
+          // for (const comment of comments) {
+          //   try {
+          //     console.log(comment.id);
+          //     await deleteComment(comment.id);
+          //   } catch (error) {
+          //     console.error(`Failed to delete comment ${comment.id}:`, error);
+          //   }
+          // }
+          await deleteAllCommentsOfPost(localData.id);
         } catch (error) {
-          console.error('Failed to delete comments before deleting post:', error);
+          console.error(
+            'Failed to delete comments before deleting post:',
+            error
+          );
         }
       }
 
@@ -302,7 +306,8 @@ export default function Post({
           {isPostType && (localData as IPost).image && (
             <Link href={`/posts/${localData.id}`}>
               <div className="grid grid-cols-2 gap-2">
-                {Array.isArray((localData as IPost).image) && (localData as IPost).image[0] ? (
+                {Array.isArray((localData as IPost).image) &&
+                (localData as IPost).image[0] ? (
                   <div className="col-span-2">
                     <Image
                       width={400}
@@ -334,7 +339,9 @@ export default function Post({
           <ReactItem
             value={localData.likedCount}
             icon={
-              <HeartIcon isActive={isPostType && (localData as IPost).hasLiked} />
+              <HeartIcon
+                isActive={isPostType && (localData as IPost).hasLiked}
+              />
             }
             onClick={isLikeLoading ? undefined : handleLikeClick}
             className={isLikeLoading ? 'pointer-events-none opacity-60' : ''}

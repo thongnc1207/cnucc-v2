@@ -80,6 +80,8 @@ export const endpoints = {
     unlike: (id: string) => `${VERSION_PREFIX}/posts/${id}/unlike`,
     save: (id: string) => `${VERSION_PREFIX}/posts/${id}/save`,
     unsave: (id: string) => `${VERSION_PREFIX}/posts/${id}/unsave`,
+    unlikeAll: (id: string) => `${VERSION_PREFIX}/posts/${id}/unlike-all`,
+    unsaveAll: (id: string) => `${VERSION_PREFIX}/posts/${id}/unsave-all`,
   },
   media: {
     upload: `${VERSION_PREFIX}/upload-file`,

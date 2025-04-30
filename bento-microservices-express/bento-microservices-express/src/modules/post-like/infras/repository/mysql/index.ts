@@ -55,4 +55,11 @@ export class MysqlPostLikeRepository implements IPostLikeRepository {
     const result = await prisma.postLikes.findMany({ where: { userId, postId: { in: postIds } } });
     return result.map((item) => item.postId);
   }
+
+  async deleteAll(postId: string): Promise<boolean> {
+    await prisma.postLikes.deleteMany({
+      where: { postId }
+    });
+    return true;
+  }
 }

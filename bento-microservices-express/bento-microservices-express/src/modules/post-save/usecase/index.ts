@@ -45,4 +45,13 @@ export class PostSaveUseCase implements IPostSaveUseCase {
 
     return result
   }
+
+  async unsaveAll(postId: string): Promise<boolean> {
+    const existed = await this.postRpc.findById(postId);
+    if (!existed) {
+      throw AppError.from(ErrPostNotFound, 404);
+    }
+
+    return await this.repository.deleteByPostId(postId);
+  }
 }

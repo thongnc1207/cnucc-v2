@@ -67,4 +67,11 @@ export class PrismaPostSaveRepository implements IPostSaveRepository {
 
     return result.map((item) => item.postId);
   }
+
+  async deleteByPostId(postId: string): Promise<boolean> {
+    await prisma.postSaves.deleteMany({
+      where: { postId }
+    });
+    return true;
+  }
 }

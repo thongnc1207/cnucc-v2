@@ -69,6 +69,12 @@ export class PostLikeHttpService {
     successResponse(result, res);
   }
 
+  async unlikeAllAPI(req: Request, res: Response) {
+    const { id: postId } = req.params;
+    const result = await this.usecase.unlikeAll(postId);
+    successResponse(result, res);
+  }
+
   getRoutes(mdlFactory: MdlFactory): Router {
     const router = Router();
 
@@ -79,6 +85,8 @@ export class PostLikeHttpService {
     // RPC
     router.post('/rpc/has-liked', this.hasLikedAPI.bind(this));
     router.post('/rpc/list-post-ids-liked', this.listPostIdsLikedAPI.bind(this));
+
+    router.delete('/posts/:id/unlike-all', mdlFactory.auth, this.unlikeAllAPI.bind(this));
 
     return router;
   }
