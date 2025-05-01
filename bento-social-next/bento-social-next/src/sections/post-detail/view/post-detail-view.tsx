@@ -83,7 +83,7 @@ export default function PostDetailView({ id }: { id: string }) {
       .catch((error) => {
         console.error('Error fetching post detail:', error);
       });
-  }, [id, isCreated]);
+  }, [id, isCreated, isDeleted]);
 
   return (
     <>
@@ -116,6 +116,7 @@ export default function PostDetailView({ id }: { id: string }) {
                 className={` ${isViewFull ? '[mask-image:linear-gradient(0deg,#000_90%,transparent)]' : ''}`}
                 comments={comments}
                 setParentComment={setParentComment}
+                onDeleteSuccess={setIsDeleted}
               />
             </div>
           </div>

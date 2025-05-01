@@ -24,16 +24,16 @@ export class UserUseCase implements IUserUseCase {
     const payload = await jwtProvider.verifyToken(token);
 
     if (!payload) {
-      throw ErrInvalidToken;
+      throw AppError.from(ErrInvalidToken, 401).withMessage('Token is invalid or expired');
     }
 
     const user = await this.repository.findById(payload.sub);
     if (!user) {
-      throw ErrNotFound;
+      throw AppError.from(ErrNotFound, 404).withMessage('User not found');
     }
 
     if (user.status === Status.DELETED || user.status === Status.INACTIVE || user.status === Status.BANNED) {
-      throw ErrUserInactivated;
+      throw AppError.from(ErrUserInactivated, 403).withMessage('User account is not active');
     }
 
     return { sub: user.id, role: user.role };

@@ -237,6 +237,56 @@ export default function Post({
     setIsDeleteLoading(false);
   };
 
+  const handleDeleteComment = async () => {
+    setIsDeleteLoading(true);
+    try {
+
+
+      // // Remove from like if liked
+      // if (isPostType && (localData as IPost).hasLiked) {
+      //   try {
+      //     await unlikeAll(localData.id);
+      //   } catch (error) {
+      //     console.error('Failed to unlike post before delete:', error);
+      //   }
+      // }
+
+      // Delete all comments if any
+      if (
+        !isPostType &&
+        (localData as ICommment).id
+      ) {
+        try {
+          // // Fetch all comments of the post
+          // const commentsRes = await getCommennts(localData.id);
+          // console.log(commentsRes);
+          // const comments = commentsRes.data || [];
+          // // Delete each comment individually
+          // for (const comment of comments) {
+          //   try {
+          //     console.log(comment.id);
+          //     await deleteComment(comment.id);
+          //   } catch (error) {
+          //     console.error(`Failed to delete comment ${comment.id}:`, error);
+          //   }
+          // }
+          await deleteComment(localData.id);
+        } catch (error) {
+          console.error(
+            'Failed to delete comments before deleting post:',
+            error
+          );
+        }
+      }
+
+      onDeleteSuccess?.(true);
+    } catch (error) {
+      console.error('Failed to delete post:', error);
+    }
+    setIsConfirm(false);
+    setIsDeleteLoading(false);
+  };
+
   const handleConfirmDelete = () => {
     setIsConfirm(true);
   };
@@ -297,7 +347,7 @@ export default function Post({
               <MoreIcon onClick={handleMoreOptions} />
             )}
           </div>
-          <Link href={`/posts/${localData.id}`} className="cursor-pointer">
+          <Link href={`/posts/${'postId' in localData ? localData.postId : localData.id}`} className="cursor-pointer">
             <Typography level="body2r" className="text-secondary opacity-80">
               {localData.content}
             </Typography>
@@ -400,7 +450,7 @@ export default function Post({
           </AlertDialogHeader>
           <AlertDialogDescription>
             <Typography level="base2sm" className="text-tertiary">
-              Are you sure you want to delete this post?
+              Are you sure you want to delete this {isPostType ? 'post' : 'comment'}? This action cannot be undone.
             </Typography>
           </AlertDialogDescription>
 
@@ -416,7 +466,7 @@ export default function Post({
             />
 
             <Button
-              onClick={handleDeletePost}
+              onClick={isPostType ? handleDeletePost : handleDeleteComment}
               className="w-full sm:w-auto"
               disabled={isDeleteLoading}
               child={

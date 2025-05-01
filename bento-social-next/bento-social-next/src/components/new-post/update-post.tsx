@@ -40,6 +40,7 @@ export default function UpdatePost({
   const [previewUrls, setPreviewUrls] = React.useState<string[]>([]);
   const [uploadedImages, setUploadedImages] = React.useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]); // New state for files
+  const [removedImageUrls, setRemovedImageUrls] = React.useState<string[]>([]); // Add new state to track removed image URLs
   const [isUploading, setIsUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -93,29 +94,31 @@ export default function UpdatePost({
 
     try {
       setIsSubmitting(true);
-      let finalImageUrls: string[] = uploadedImages; // Start with current images
+      let finalImageUrls: string[] = uploadedImages.filter(url => !removedImageUrls.includes(url));
 
-      // If there are new files selected, handle image updates
-      if (selectedFiles.length > 0) {
-        // First delete all previous images if they exist
-        if (uploadedImages.length > 0) {
-          try {
-            await deleteImages(uploadedImages);
-          } catch (error) {
-            console.error('Failed to delete previous images:', error);
-          }
+      // Delete only the removed images
+      if (removedImageUrls.length > 0) {
+        try {
+          await deleteImages(removedImageUrls);
+        } catch (error) {
+          console.error('Failed to delete removed images:', error);
         }
+      }
 
-        // Then upload new images
+      // Upload new images if any
+      if (selectedFiles.length > 0) {
         setIsUploading(true);
         const response = await uploadImage(selectedFiles);
         const mediaArray = Array.isArray(response.data)
           ? response.data
           : [response.data];
-        finalImageUrls = mediaArray.map((item: Media) => item.url);
+        const newImageUrls = mediaArray.map((item: Media) => item.url);
+        
+        // Combine remaining old images with new ones
+        finalImageUrls = [...finalImageUrls, ...newImageUrls];
         setIsUploading(false);
       }
-      
+
       const postData: UpdatePost = {
         content: content.trim(),
         image: finalImageUrls,
@@ -158,9 +161,15 @@ export default function UpdatePost({
   };
 
   const handleRemoveImage = (index: number) => {
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    // Only clear the file input if we're removing the last image
+    const removedUrl = previewUrls[index];
+    // Only track removal if it was a previously uploaded image
+    if (uploadedImages.includes(removedUrl)) {
+      setRemovedImageUrls(prev => [...prev, removedUrl]);
+    }
+    
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    
     if (previewUrls.length <= 1 && fileInputRef.current) {
       fileInputRef.current.value = '';
     }

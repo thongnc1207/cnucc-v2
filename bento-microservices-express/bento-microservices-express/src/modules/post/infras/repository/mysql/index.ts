@@ -103,11 +103,40 @@ export class MysqlPostRepository implements IPostRepository {
   }
 
   async increaseCount(id: string, field: string, step: number): Promise<boolean> {
-    await prisma.posts.update({ where: { id }, data: { [field]: { increment: step } } });
-    return true;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await prisma.posts.update({ 
+          where: { id },
+          data: { [field]: { increment: step } }
+        });
+        return true;
+      } catch (error) {
+        if (retries === 1) throw error;
+        retries--;
+        // Add small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    return false;
   }
+
   async decreaseCount(id: string, field: string, step: number): Promise<boolean> {
-    await prisma.posts.update({ where: { id }, data: { [field]: { decrement: step } } });
-    return true;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await prisma.posts.update({
+          where: { id },
+          data: { [field]: { decrement: step } }
+        });
+        return true;
+      } catch (error) {
+        if (retries === 1) throw error;
+        retries--;
+        // Add small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    return false;
   }
 }

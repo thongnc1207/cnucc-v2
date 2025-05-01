@@ -19,6 +19,7 @@ import MobileSidebarTrigger from '@/components/sidebar-trigger/mobile-sidebar-tr
 import { usePost } from '@/context/post-context';
 
 import { USER_AVATAR_PLACEHOLDER } from '@/constant';
+import {ScrollToTop} from '@/components/scroll-to-top/scroll-to-top';
 
 // ----------------------------------------------------------------------
 
@@ -33,6 +34,8 @@ export default function HomeView() {
   >(null);
 
   const { userProfile: user } = useUserProfile();
+
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     setFilter((prevFilter) => ({ ...prevFilter, str: searchStr }));
@@ -71,7 +74,10 @@ export default function HomeView() {
 
   return (
     <>
-      <div className="h-fit min-h-screen overflow-y-scroll p-3 no-scrollbar pb-[5rem]">
+      <div 
+        ref={scrollContainerRef}
+        className="h-fit min-h-screen overflow-y-scroll p-3 no-scrollbar pb-[5rem]"
+      >
         <div className="flex items-center gap-2 mb-3">
           <SearchInput
             placeholder="Search for posts"
@@ -103,6 +109,9 @@ export default function HomeView() {
           ))}
         </ul>
       </div>
+      
+      <ScrollToTop scrollContainerRef={scrollContainerRef} />
+      <button>but</button>
       {isCreatePost && <NewPostModal onBack={handleCreatePost} />}
     </>
   );

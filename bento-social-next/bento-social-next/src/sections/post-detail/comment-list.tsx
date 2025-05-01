@@ -11,13 +11,19 @@ interface commentListProps {
   comments: ICommment[];
   className?: string;
   setParentComment?: (parentComment: { id: string; fullname: string }) => void;
+  onDeleteSuccess?: (isDeleted: boolean) => void; // Add this prop
 }
 
 export default function CommentList({
   comments,
   className,
   setParentComment,
+  onDeleteSuccess, // Add this prop
 }: commentListProps) {
+  const [openMoreOptionsId, setOpenMoreOptionsId] = React.useState<
+    string | null
+  >(null);
+  
   return (
     <>
       {comments?.length > 0 && (
@@ -29,6 +35,9 @@ export default function CommentList({
                   data={comment}
                   className="bg-neutral2-2"
                   setParentComment={setParentComment}
+                  onDeleteSuccess={onDeleteSuccess}
+                  openMoreOptionsId={openMoreOptionsId}
+                  setOpenMoreOptionsId={setOpenMoreOptionsId}
                 />
               ) : (
                 <ul className="rounded-[1.25rem] hover:bg-neutral2-3">
@@ -36,6 +45,9 @@ export default function CommentList({
                     <Post
                       className='rounded-bl-none rounded-br-none after:content-[""] after:absolute after:top-[64px] after:left-[33.5px] after:bottom-0 after:w-[1.5px] after:bg-neutral2-10 bg-none hover:bg-neutral2-2'
                       data={comment}
+                      onDeleteSuccess={onDeleteSuccess}
+                      openMoreOptionsId={openMoreOptionsId}
+                      setOpenMoreOptionsId={setOpenMoreOptionsId}
                     />
                   </li>
                   {comment.children?.map(
@@ -48,6 +60,9 @@ export default function CommentList({
                               : 'after:content-[""] after:absolute after:top-[64px] after:left-[33.5px] after:bottom-0 after:w-[1.5px] after:bg-neutral2-10 bg-none '
                           }`}
                           data={reply}
+                          onDeleteSuccess={onDeleteSuccess}
+                          openMoreOptionsId={openMoreOptionsId}
+                          setOpenMoreOptionsId={setOpenMoreOptionsId}
                         />
                       </li>
                     )
